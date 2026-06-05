@@ -66,7 +66,7 @@ license_cc0()
 license_gpl2()
 license_gpl3()
 license_lgpl2()
-license_lgpl(3)
+license_lgpl3()
 ```
 
 Requires year and author:
@@ -74,7 +74,7 @@ Requires year and author:
 * The "BSD 2-clause License" (BSD_2_clause)
 * The "MIT License" (MIT)
 
-```
+```R
 license_bsd2(2026, "Pacha")
 license_mit(2026, "Pacha")
 ```
