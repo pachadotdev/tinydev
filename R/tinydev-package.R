@@ -3,6 +3,7 @@
 #'  essential functions for creating R packages with ease. 'tinydev' is to
 #' 'devtools' what 'tinytest' is to 'testthat', a lightweight alternative that
 #' focuses on simplicity and ease of use.
+#' @importFrom covr package_coverage coverage_to_list
 #' @importFrom desc desc_set
 #' @importFrom tinytest run_test_dir setup_tinytest
 #' @importFrom roxygen2 roxygenise

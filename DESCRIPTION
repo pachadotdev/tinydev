@@ -10,6 +10,7 @@ Description: A minimalistic R package development toolkit that provides
     that focuses on simplicity and ease of use.
 License: Apache License 2.0
 Imports:
+    covr,
     desc,
     roxygen2,
     tinytest
