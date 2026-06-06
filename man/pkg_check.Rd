@@ -4,12 +4,20 @@
 \alias{pkg_check}
 \title{Check R package}
 \usage{
-pkg_check(pkgdir = ".", cran = TRUE, manual = FALSE, vignettes = FALSE)
+pkg_check(
+  pkgdir = ".",
+  cran = TRUE,
+  document = TRUE,
+  manual = FALSE,
+  vignettes = FALSE
+)
 }
 \arguments{
 \item{pkgdir}{The path to the package directory. Defaults to the current directory.}
 
 \item{cran}{\code{[logical]} Run checks as if on CRAN (passes \code{--as-cran}).}
+
+\item{document}{\code{[logical]} Generate documentation before checking.}
 
 \item{manual}{\code{[logical]} Build the PDF manual (requires LaTeX).}
 

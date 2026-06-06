@@ -4,10 +4,12 @@
 \alias{pkg_build}
 \title{Build R package}
 \usage{
-pkg_build(pkgdir = ".")
+pkg_build(pkgdir = ".", document = TRUE)
 }
 \arguments{
 \item{pkgdir}{The path to the package directory. Defaults to the current directory.}
+
+\item{document}{\code{[logical]} Generate documentation before checking.}
 }
 \value{
 Invisibly returns 'TRUE' if the package was built successfully.

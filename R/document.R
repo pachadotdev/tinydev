@@ -6,7 +6,7 @@
 pkg_document <- function(pkgdir = ".") {
     pkg <- normalizePath(pkgdir, winslash = "/")
     stop_if_not_package(pkg)
-    description_update(pkg)
+    # description_update(pkg)
     roxygenise(pkg)
     invisible(TRUE)
 }

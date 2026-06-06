@@ -2,14 +2,17 @@
 #' @description Build an R package into a tar.gz file. The built file will be
 #'  created one level up from the package directory.
 #' @param pkgdir The path to the package directory. Defaults to the current directory.
+#' @param document \code{[logical]} Generate documentation before checking.
 #' @return Invisibly returns 'TRUE' if the package was built successfully.
 #' @export
-pkg_build <- function(pkgdir = ".") {
+pkg_build <- function(pkgdir = ".", document = TRUE) {
     pkg <- normalizePath(pkgdir, winslash = "/")
     stop_if_not_package(pkg)
     
-    description_update(pkg)
-    pkg_document(pkg)
+    # description_update(pkg)
+    if (document) {
+        pkg_document(pkg)
+    }
 
     pkgname <- read.dcf(file.path(pkg, "DESCRIPTION"), fields = "Package")
     outdir <- dirname(pkg)

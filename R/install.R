@@ -6,7 +6,7 @@
 pkg_install <- function(pkgdir = ".") {
     pkg <- normalizePath(pkgdir, winslash = "/")
     stop_if_not_package(pkg)
-    description_update(pkg)
+    # description_update(pkg)
     exit_code <- system2("R", args = c("CMD", "INSTALL", shQuote(pkg)))
     invisible(TRUE)
 }

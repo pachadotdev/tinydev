@@ -2,16 +2,19 @@
 #' @description Build and check an R package using R CMD check.
 #' @param pkgdir The path to the package directory. Defaults to the current directory.
 #' @param cran \code{[logical]} Run checks as if on CRAN (passes \code{--as-cran}).
+#' @param document \code{[logical]} Generate documentation before checking.
 #' @param manual \code{[logical]} Build the PDF manual (requires LaTeX).
 #' @param vignettes \code{[logical]} Build vignettes during check.
 #' @return Invisibly returns 'TRUE' if the package was built successfully.
 #' @export
-pkg_check <- function(pkgdir = ".", cran = TRUE, manual = FALSE, vignettes = FALSE) {
+pkg_check <- function(pkgdir = ".", cran = TRUE, document = TRUE, manual = FALSE, vignettes = FALSE) {
     pkg <- normalizePath(pkgdir, winslash = "/")
     stop_if_not_package(pkg)
     
-    description_update(pkg)
-    pkg_document(pkg)
+    # description_update(pkg)
+    if (document) {
+        pkg_document(pkg)
+    }
 
     pkgname <- read.dcf(file.path(pkg, "DESCRIPTION"), fields = "Package")[[1]]
 
