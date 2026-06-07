@@ -43,5 +43,11 @@ pkg_check <- function(pkgdir = ".", cran = TRUE, document = TRUE, manual = FALSE
     check_args <- c(check_args, shQuote(tarball))
     system2("R", args = check_args)
 
+    # remove gcno files
+    gcno_files <- list.files(".", pattern = "\\.gcno$", recursive = FALSE, full.names = TRUE)
+    if (length(gcno_files) > 0) {
+        file.remove(gcno_files)
+    }
+
     invisible(TRUE)
 }
