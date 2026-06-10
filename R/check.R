@@ -7,9 +7,11 @@
 #' @param vignettes \code{[logical]} Build vignettes during check.
 #' @return Invisibly returns 'TRUE' if the package was built successfully.
 #' @export
-pkg_check <- function(pkgdir = ".", cran = TRUE, document = TRUE, manual = FALSE, vignettes = FALSE) {
+pkg_check <- function(pkgdir = ".", cran = TRUE, document = TRUE, manual = TRUE, vignettes = TRUE) {
     pkg <- normalizePath(pkgdir, winslash = "/")
     stop_if_not_package(pkg)
+    
+    pkg_clean(pkg)
     
     # description_update(pkg)
     if (document) {

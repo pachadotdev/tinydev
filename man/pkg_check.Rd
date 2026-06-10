@@ -8,8 +8,8 @@ pkg_check(
   pkgdir = ".",
   cran = TRUE,
   document = TRUE,
-  manual = FALSE,
-  vignettes = FALSE
+  manual = TRUE,
+  vignettes = TRUE
 )
 }
 \arguments{

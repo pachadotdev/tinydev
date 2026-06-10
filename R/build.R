@@ -3,9 +3,11 @@
 #'  created one level up from the package directory.
 #' @param pkgdir The path to the package directory. Defaults to the current directory.
 #' @param document \code{[logical]} Generate documentation before checking.
-#' @return Invisibly returns 'TRUE' if the package was built successfully.
+#' @param build_vignettes \code{[logical]} Build vignettes. Defaults to TRUE.
+#' @param build_manual \code{[logical]} Build manual. Defaults to TRUE.
+#' @return Prints the path to the built tar.gz file if successful.
 #' @export
-pkg_build <- function(pkgdir = ".", document = TRUE) {
+pkg_build <- function(pkgdir = ".", document = TRUE, build_vignettes = TRUE, build_manual = TRUE) {
     pkg <- normalizePath(pkgdir, winslash = "/")
     stop_if_not_package(pkg)
     
@@ -19,8 +21,14 @@ pkg_build <- function(pkgdir = ".", document = TRUE) {
     oldwd <- getwd()
     on.exit(setwd(oldwd))
     setwd(outdir)
-    system2("R", args = c("CMD", "build", "--no-build-vignettes", "--no-manual", shQuote(pkg)))
+    
+    args <- c("CMD", "build")
+    if (!build_vignettes) args <- c(args, "--no-build-vignettes")
+    if (!build_manual) args <- c(args, "--no-manual")
+    args <- c(args, shQuote(pkg))
+    
+    system2("R", args = args, stdout = NULL, stderr = NULL)
     pkgfile <- dir(outdir, pattern = paste0(pkgname, ".*\\.tar\\.gz"), full.names = TRUE)
     
-    invisible(TRUE)
+    pkgfile
 }

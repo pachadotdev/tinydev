@@ -12,12 +12,6 @@ pkg_coverage(pkgdir = ".", quiet = TRUE, type = "all")
 \item{quiet}{If \code{TRUE}, suppress output from the underlying \code{covr::package_coverage()} function. Defaults to \code{TRUE}.}
 
 \item{type}{The type of coverage to calculate. One of "tests", "examples", "vignettes", or "all". Defaults to "all".}
-
-\item{document}{\code{[logical]} Generate documentation before checking.}
-
-\item{manual}{\code{[logical]} Build the PDF manual (requires LaTeX).}
-
-\item{vignettes}{\code{[logical]} Build vignettes during check.}
 }
 \value{
 Invisibly returns 'TRUE' if the package was built successfully.

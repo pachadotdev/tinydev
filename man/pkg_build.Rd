@@ -4,15 +4,24 @@
 \alias{pkg_build}
 \title{Build R package}
 \usage{
-pkg_build(pkgdir = ".", document = TRUE)
+pkg_build(
+  pkgdir = ".",
+  document = TRUE,
+  build_vignettes = TRUE,
+  build_manual = TRUE
+)
 }
 \arguments{
 \item{pkgdir}{The path to the package directory. Defaults to the current directory.}
 
 \item{document}{\code{[logical]} Generate documentation before checking.}
+
+\item{build_vignettes}{\code{[logical]} Build vignettes. Defaults to TRUE.}
+
+\item{build_manual}{\code{[logical]} Build manual. Defaults to TRUE.}
 }
 \value{
-Invisibly returns 'TRUE' if the package was built successfully.
+Prints the path to the built tar.gz file if successful.
 }
 \description{
 Build an R package into a tar.gz file. The built file will be

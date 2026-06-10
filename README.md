@@ -8,6 +8,18 @@ Run `tinydev::pkg_template("<PACKAGE_NAME>")`.
 
 Go to the new package directory (e.g., `cd ~/Documents/<PACKAGE_NAME>` from bash or `setwd(~/Documents/<PACKAGE_NAME>)` from R).
 
+# Why does tinydev exist?
+
+*devtools*, *usethis* and the extended Tidyverse packages are great. I use them from my laptop daily, in fact I use more
+*usethis* than *dplyr* or other tidy tools.
+
+With servers, it is a different story. *devtools* imports *urlchecker* which imports *curl* and that means to install
+*libcurl* 7.73 or newer (i.e., `libcurl4-openssl-dev` on Debian systems) which is not always available. Besides it, *devtools*
+has more system requirements that involve communication with IT/Systems at universities and that often involves paperwork.
+
+Between a pure R CMD approach (i.e., `R CMD build` + `R CMD check {tar file}`) and `devtools::check()` is there a gap for
+*tinydev* and be able to check that your package works correctly within your server infrastructure.
+
 ## Minimal steps to get a working package
 
 1. Add a package license. I provide templates for all CRAN-supported (see note 1) licenses,
@@ -21,6 +33,12 @@ Go to the new package directory (e.g., `cd ~/Documents/<PACKAGE_NAME>` from bash
 2. Convert such tests to proper unit tests in `inst/tinytest`.
 3. Test the changes with `tinydev::pkg_test()`.
 
+## Checking
+
+1. `tinydev::pkg_check()` will build and check a package. The default is to check using CRAN standards.
+2. `tinydev::pkg_check_docker("ubuntu-clang")` will build and check a package using Docker and R-Hub images. This supports
+    all of the available R-Hub images that match CRAN.
+
 ## Local installation
 
 Run `tinydev::pkg_install()`.
@@ -32,9 +50,8 @@ Run `tinydev::pkg_install()`.
 
 # Additional functions
 
-1. `clear()` cleans the console.
+1. `clear()` clears the console.
 2. `pkg_clean()` removes compiled binaries in `src/`.
-3. `description_update()` will add missing Imports/Suggests and remove those not needed after editing the package.
 4. `rbuildignore_add()` adds files or directories to `.Rbuildignore`.
 
 # Tinytest

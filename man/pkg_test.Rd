@@ -14,5 +14,8 @@ Invisibly returns 'TRUE' if tests were run successfully.
 }
 \description{
 Run tests for an R package using tinytest. Tests should be placed
-in the 'inst/tinytest' directory of the package.
+in the 'inst/tinytest' directory of the package. Any R files in that directory
+not starting with 'test' (e.g. 'helper.R') are sourced into the global
+environment before running the tests, making their definitions available to
+all test files.
 }

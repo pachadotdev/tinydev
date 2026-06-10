@@ -3,9 +3,6 @@
 #' @param pkgdir The path to the package directory. Defaults to the current directory.
 #' @param type The type of coverage to calculate. One of "tests", "examples", "vignettes", or "all". Defaults to "all".
 #' @param quiet If \code{TRUE}, suppress output from the underlying \code{covr::package_coverage()} function. Defaults to \code{TRUE}.
-#' @param document \code{[logical]} Generate documentation before checking.
-#' @param manual \code{[logical]} Build the PDF manual (requires LaTeX).
-#' @param vignettes \code{[logical]} Build vignettes during check.
 #' @return Invisibly returns 'TRUE' if the package was built successfully.
 #' @export
 pkg_coverage <- function(pkgdir = ".", quiet = TRUE, type = "all") {
