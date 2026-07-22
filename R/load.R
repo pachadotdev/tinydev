@@ -14,6 +14,69 @@ pkg_load <- function(pkgdir = ".") {
     # requiring symbols to live directly in globalenv().
     pkg_env <- new.env(parent = globalenv())
 
+    # Load Imports before sourcing/running any package code below, exactly
+    # like a real package load does (a namespace's imports are resolved
+    # before its code is evaluated and its .onLoad hook runs). Doing this
+    # first means functions from Imports are already available if .onLoad
+    # calls into them (e.g. registering a cache backend).
+    #
+    # Every package under DESCRIPTION's Imports gets its namespace loaded
+    # via requireNamespace() (so its own .onLoad runs and any S3 methods it
+    # registers - e.g. data.table's merge.data.table - become available for
+    # dispatch), but it is deliberately *not* attached to the search() path
+    # via library(). Attaching every import would put ALL of that package's
+    # exports ahead of base:: in scope for the sourced code, so an import
+    # that happens to export a same-named function as a base generic (e.g.
+    # config::merge(), a plain 2-argument helper, vs. the base::merge() S3
+    # generic used throughout most packages) can silently shadow it, turning
+    # generic dispatch into a call to the wrong function entirely and
+    # breaking things in ways that only show up as a confusing "unused
+    # arguments" error. A real NAMESPACE only ever brings in the exact names
+    # listed in its import()/importFrom() directives, so we mirror that by
+    # reading the package's own (roxygen2-generated) NAMESPACE file and
+    # copying just those names into pkg_env, instead of attaching whole
+    # packages.
+    imports_raw <- read.dcf(file.path(pkg, "DESCRIPTION"), fields = "Imports")[[1]]
+    if (!is.na(imports_raw)) {
+        import_pkgs <- trimws(strsplit(imports_raw, ",")[[1]])
+        # Strip optional version constraints, e.g. "rlang (>= 1.0.0)" -> "rlang"
+        import_pkgs <- sub("\\s*\\(.*\\)$", "", import_pkgs)
+        for (imp in import_pkgs) {
+            requireNamespace(imp, quietly = TRUE)
+        }
+    }
+
+    namespace_file <- file.path(pkg, "NAMESPACE")
+    if (file.exists(namespace_file)) {
+        ns_lines <- readLines(namespace_file, warn = FALSE)
+        ns_lines <- trimws(ns_lines)
+        ns_lines <- ns_lines[nzchar(ns_lines) & !startsWith(ns_lines, "#")]
+
+        # import(pkg): blanket import of every name the package exports
+        import_calls <- regmatches(ns_lines, regexec("^import\\(([^)]+)\\)$", ns_lines))
+        for (m in import_calls) {
+            if (length(m) == 2) {
+                imp_pkg <- trimws(m[2])
+                for (nm in getNamespaceExports(imp_pkg)) {
+                    pkg_env[[nm]] <- get(nm, envir = asNamespace(imp_pkg))
+                }
+            }
+        }
+
+        # importFrom(pkg, name1, name2, ...): only the listed names
+        importfrom_calls <- regmatches(ns_lines, regexec("^importFrom\\(([^,]+),(.+)\\)$", ns_lines))
+        for (m in importfrom_calls) {
+            if (length(m) == 3) {
+                imp_pkg <- trimws(m[2])
+                nms <- trimws(strsplit(m[3], ",")[[1]])
+                nms <- gsub("^`|`$", "", nms)
+                for (nm in nms) {
+                    pkg_env[[nm]] <- get(nm, envir = asNamespace(imp_pkg))
+                }
+            }
+        }
+    }
+
     # Compile shared library if src/ exists
     src_dir <- file.path(pkg, "src")
     if (dir.exists(src_dir)) {
@@ -131,14 +194,18 @@ pkg_load <- function(pkgdir = ".") {
         load(f, envir = globalenv())
     }
 
-    imports_raw <- read.dcf(file.path(pkg, "DESCRIPTION"), fields = "Imports")[[1]]
-    if (!is.na(imports_raw)) {
-        import_pkgs <- trimws(strsplit(imports_raw, ",")[[1]])
-        # Strip optional version constraints, e.g. "rlang (>= 1.0.0)" -> "rlang"
-        import_pkgs <- sub("\\s*\\(.*\\)$", "", import_pkgs)
-        for (imp in import_pkgs) {
-            library(imp, character.only = TRUE)
-        }
+    # Run the package's load hooks, like a real package load does once its
+    # namespace is populated and its Imports are attached. Sourcing the R
+    # files only *defines* .onLoad/.onAttach, it never calls them, so any
+    # setup a package relies on happening at load time (e.g. tabler's
+    # tablerOptions(cache = ...) pattern) would otherwise silently never run
+    # under pkg_load().
+    libname <- dirname(pkg)
+    if (exists(".onLoad", envir = pkg_env, inherits = FALSE)) {
+        pkg_env$.onLoad(libname, pkgname)
+    }
+    if (exists(".onAttach", envir = pkg_env, inherits = FALSE)) {
+        pkg_env$.onAttach(libname, pkgname)
     }
 
     invisible(r_files)
