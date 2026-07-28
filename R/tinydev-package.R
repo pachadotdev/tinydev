@@ -5,7 +5,7 @@
 #' focuses on simplicity and ease of use.
 #' @importFrom covr package_coverage coverage_to_list
 #' @importFrom desc desc_set
+#' @importFrom tinyroxygen roxygenise
 #' @importFrom tinytest run_test_dir setup_tinytest
-#' @importFrom roxygen2 roxygenise
 #' @importFrom utils packageVersion
 "_PACKAGE"

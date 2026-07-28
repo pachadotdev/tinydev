@@ -33,9 +33,8 @@ pkg_load <- function(pkgdir = ".") {
     # breaking things in ways that only show up as a confusing "unused
     # arguments" error. A real NAMESPACE only ever brings in the exact names
     # listed in its import()/importFrom() directives, so we mirror that by
-    # reading the package's own (roxygen2-generated) NAMESPACE file and
-    # copying just those names into pkg_env, instead of attaching whole
-    # packages.
+    # reading the package's own NAMESPACE file and copying just those names
+    # into pkg_env, instead of attaching whole packages.
     imports_raw <- read.dcf(file.path(pkg, "DESCRIPTION"), fields = "Imports")[[1]]
     if (!is.na(imports_raw)) {
         import_pkgs <- trimws(strsplit(imports_raw, ",")[[1]])
