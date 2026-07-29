@@ -14,7 +14,9 @@ pkg_test <- function(pkgdir = ".") {
     if (!dir.exists(testdir)) {
         stop("no test directory found at: ", testdir, call. = FALSE)
     }
-    helpers <- dir(testdir, pattern = "^(?!test)[^.]+\\.[rR]$", full.names = TRUE)
+    pkg_load(pkg)
+    rfiles <- dir(testdir, pattern = "\\.[rR]$", full.names = TRUE)
+    helpers <- rfiles[!grepl("^test", basename(rfiles), perl = TRUE)]
     for (h in helpers) {
         source(h, local = FALSE)
     }

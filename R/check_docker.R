@@ -71,10 +71,10 @@ pkg_check_docker <- function(pkgdir = ".", image = "ubuntu-gcc", document = TRUE
     # Check if Docker image exists, pull if needed with fallbacks
     if (system2("docker", args = c("image", "inspect", full_image),
                 stdout = NULL, stderr = NULL) != 0) {
-        cat(sprintf("Pulling %s...\n", full_image))
+        message(sprintf("Pulling %s...", full_image))
         if (system2("docker", args = c("pull", full_image),
                    stdout = NULL, stderr = NULL) != 0) {
-            cat("Initial pull failed for", full_image, "\n")
+            message("Initial pull failed for ", full_image)
             # Try fallback images
             fallback <- NULL
             if (grepl("rocky8", image)) {
@@ -86,11 +86,11 @@ pkg_check_docker <- function(pkgdir = ".", image = "ubuntu-gcc", document = TRUE
             }
 
             if (!is.null(fallback)) {
-                cat("Attempting fallback image:", fallback, "\n")
+                message("Attempting fallback image: ", fallback)
                 if (system2("docker", args = c("pull", fallback),
                            stdout = NULL, stderr = NULL) == 0) {
                     full_image <- fallback
-                    cat("Using fallback image", fallback, "\n")
+                    message("Using fallback image ", fallback)
                 } else {
                     stop("Fallback pull failed; aborting.", call. = FALSE)
                 }
@@ -99,7 +99,7 @@ pkg_check_docker <- function(pkgdir = ".", image = "ubuntu-gcc", document = TRUE
             }
         }
     } else {
-        cat(sprintf("Using cached image %s\n", full_image))
+        message(sprintf("Using cached image %s", full_image))
     }
 
     # Create install script for R packages
@@ -116,11 +116,6 @@ pkg_check_docker <- function(pkgdir = ".", image = "ubuntu-gcc", document = TRUE
         "  }",
         "} else {",
         "  options(repos = c(CRAN = 'https://cloud.r-project.org'))",
-        "}",
-        "for (pkg in c('remotes', 'desc', 'xml2')) {",
-        "  if (!requireNamespace(pkg, quietly = TRUE)) {",
-        "    install.packages(pkg, lib = user_lib)",
-        "  }",
         "}"
     ), install_script)
 
@@ -132,9 +127,9 @@ pkg_check_docker <- function(pkgdir = ".", image = "ubuntu-gcc", document = TRUE
         tarball_file
     )
 
-    cat("========================================\n")
-    cat(sprintf("Docker check: %s\n", image))
-    cat("========================================\n")
+    message("========================================")
+    message(sprintf("Docker check: %s", image))
+    message("========================================")
 
     # Run Docker container
     docker_rc <- system2("docker", args = c(
@@ -146,10 +141,10 @@ pkg_check_docker <- function(pkgdir = ".", image = "ubuntu-gcc", document = TRUE
     ))
 
     if (docker_rc != 0) {
-        cat(sprintf("\nWarning: Docker check exited with code %d\n", docker_rc))
+        warning(sprintf("Docker check exited with code %d", docker_rc), call. = FALSE)
     }
 
-    cat(sprintf("\nCheck log saved to: %s\n", log_file))
+    message(sprintf("Check log saved to: %s", log_file))
 
     invisible(TRUE)
 }

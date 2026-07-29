@@ -12,8 +12,10 @@ License: Apache License 2.0
 Imports:
     covr,
     desc,
-    roxygen2,
+    tinyroxygen,
     tinytest
+Suggests:
+    cpp4r
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0

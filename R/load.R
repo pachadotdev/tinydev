@@ -33,9 +33,8 @@ pkg_load <- function(pkgdir = ".") {
     # breaking things in ways that only show up as a confusing "unused
     # arguments" error. A real NAMESPACE only ever brings in the exact names
     # listed in its import()/importFrom() directives, so we mirror that by
-    # reading the package's own (roxygen2-generated) NAMESPACE file and
-    # copying just those names into pkg_env, instead of attaching whole
-    # packages.
+    # reading the package's own NAMESPACE file and copying just those names
+    # into pkg_env, instead of attaching whole packages.
     imports_raw <- read.dcf(file.path(pkg, "DESCRIPTION"), fields = "Imports")[[1]]
     if (!is.na(imports_raw)) {
         import_pkgs <- trimws(strsplit(imports_raw, ",")[[1]])
@@ -148,15 +147,32 @@ pkg_load <- function(pkgdir = ".") {
                 on.exit(Sys.setenv(PKG_CPPFLAGS = old_env), add = TRUE)
             }
 
-            system2("R", c("CMD", "SHLIB", shQuote(src_files)))
+            # Name the output after the package itself, matching what R CMD
+            # INSTALL would produce. R's dyn.load() auto-invokes the
+            # "R_init_<name>" routine using the *DLL's basename* as <name>,
+            # not the R_init_ symbol actually defined inside it. Letting
+            # SHLIB pick a name from the first source file (e.g. cpp4r.cpp
+            # when a vendored cpp4r.cpp sorts before main.cpp) produces a
+            # DLL whose basename doesn't match the package, so the real
+            # R_init_<pkgname> registration routine is silently never
+            # called and .Call() lookups of native symbols fail.
             dll_pat <- if (.Platform$OS.type == "windows") "\\.dll$" else "\\.so$"
-            dll <- dir(".", pattern = dll_pat, full.names = TRUE)
-            if (length(dll) > 0) {
+            dll_ext <- if (.Platform$OS.type == "windows") ".dll" else ".so"
+            dll_name <- paste0(pkgname, dll_ext)
+            # Remove any stale .so/.dll left over from a previous build (e.g.
+            # one named after a vendored source file such as cpp4r.cpp) so it
+            # can never be picked up instead of the freshly built package DLL.
+            stale_dll <- setdiff(dir(".", pattern = dll_pat, full.names = TRUE), file.path(".", dll_name))
+            if (length(stale_dll) > 0) {
+                file.remove(stale_dll)
+            }
+            system2("R", c("CMD", "SHLIB", "-o", shQuote(dll_name), shQuote(src_files)))
+            if (file.exists(dll_name)) {
                 loaded <- getLoadedDLLs()
                 if (pkgname %in% names(loaded)) {
                     dyn.unload(loaded[[pkgname]][["path"]])
                 }
-                dll_info <- dyn.load(dll[1])
+                dll_info <- dyn.load(dll_name)
                 # Register native symbols in pkg_env so that backtick
                 # .Call(`_pkg_foo_`) syntax works without a real namespace
                 # (mirrors what useDynLib(..., .registration=TRUE) does).
@@ -180,10 +196,6 @@ pkg_load <- function(pkgdir = ".") {
     for (f in r_files) {
         source(f, local = pkg_env)
     }
-    # Expose everything (functions + native symbols) to globalenv so callers
-    # see the same result as devtools::load_all(). list2env() does not
-    # trigger the R CMD CHECK NOTE that assign(..., envir = globalenv()) does.
-    list2env(as.list(pkg_env), envir = globalenv())
 
     data_files <- list.files(
         file.path(pkg, "data"),
@@ -191,7 +203,7 @@ pkg_load <- function(pkgdir = ".") {
         full.names = TRUE
     )
     for (f in data_files) {
-        load(f, envir = globalenv())
+        load(f, envir = pkg_env)
     }
 
     # Run the package's load hooks, like a real package load does once its
@@ -207,6 +219,17 @@ pkg_load <- function(pkgdir = ".") {
     if (exists(".onAttach", envir = pkg_env, inherits = FALSE)) {
         pkg_env$.onAttach(libname, pkgname)
     }
+
+    # Expose everything (functions, data and native symbols) on the search
+    # path, like a real package load / devtools::load_all() does, instead of
+    # writing into .GlobalEnv. attach() inserts a separate environment at
+    # search()[2], leaving the user's global workspace untouched, which is
+    # required by CRAN policy.
+    search_name <- paste0("package:", pkgname)
+    if (search_name %in% search()) {
+        detach(search_name, character.only = TRUE, unload = FALSE)
+    }
+    attach(as.list(pkg_env), name = search_name, warn.conflicts = FALSE)
 
     invisible(r_files)
 }

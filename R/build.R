@@ -16,7 +16,6 @@ pkg_build <- function(pkgdir = ".", document = TRUE, build_vignettes = TRUE, bui
         pkg_document(pkg)
     }
 
-    pkgname <- read.dcf(file.path(pkg, "DESCRIPTION"), fields = "Package")
     outdir <- dirname(pkg)
     oldwd <- getwd()
     on.exit(setwd(oldwd))
@@ -27,8 +26,22 @@ pkg_build <- function(pkgdir = ".", document = TRUE, build_vignettes = TRUE, bui
     if (!build_manual) args <- c(args, "--no-manual")
     args <- c(args, shQuote(pkg))
     
-    system2("R", args = args, stdout = NULL, stderr = NULL)
-    pkgfile <- dir(outdir, pattern = paste0(pkgname, ".*\\.tar\\.gz"), full.names = TRUE)
+    # Capture R CMD build's own output rather than globbing outdir for the
+    # built tarball afterwards: a glob like `dir(outdir, pattern =
+    # paste0(pkgname, ".*\\.tar\\.gz"))` is unanchored, so it can match stale
+    # tarballs from a previous version left in outdir (returning multiple
+    # paths) and even other packages whose name starts with pkgname (e.g.
+    # "cpp4r" matching "cpp4rtest_*.tar.gz"). R CMD build's last line of
+    # output, `* building 'pkgname_x.y.z.tar.gz'`, unambiguously names the
+    # tarball it just produced.
+    out <- system2("R", args = args, stdout = TRUE, stderr = TRUE)
+    cat(out, sep = "\n")
+
+    built_line <- grep("^\\* building .+\\.tar\\.gz.$", out, value = TRUE)
+    if (length(built_line) == 0) {
+        stop("tinydev::pkg_build(): R CMD build did not report a built tarball; see output above.", call. = FALSE)
+    }
+    pkgfile <- file.path(outdir, sub("^\\* building .(.+\\.tar\\.gz).$", "\\1", built_line[length(built_line)]))
     
     pkgfile
 }
