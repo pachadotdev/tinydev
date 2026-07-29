@@ -147,32 +147,15 @@ pkg_load <- function(pkgdir = ".") {
                 on.exit(Sys.setenv(PKG_CPPFLAGS = old_env), add = TRUE)
             }
 
-            # Name the output after the package itself, matching what R CMD
-            # INSTALL would produce. R's dyn.load() auto-invokes the
-            # "R_init_<name>" routine using the *DLL's basename* as <name>,
-            # not the R_init_ symbol actually defined inside it. Letting
-            # SHLIB pick a name from the first source file (e.g. cpp4r.cpp
-            # when a vendored cpp4r.cpp sorts before main.cpp) produces a
-            # DLL whose basename doesn't match the package, so the real
-            # R_init_<pkgname> registration routine is silently never
-            # called and .Call() lookups of native symbols fail.
+            system2("R", c("CMD", "SHLIB", shQuote(src_files)))
             dll_pat <- if (.Platform$OS.type == "windows") "\\.dll$" else "\\.so$"
-            dll_ext <- if (.Platform$OS.type == "windows") ".dll" else ".so"
-            dll_name <- paste0(pkgname, dll_ext)
-            # Remove any stale .so/.dll left over from a previous build (e.g.
-            # one named after a vendored source file such as cpp4r.cpp) so it
-            # can never be picked up instead of the freshly built package DLL.
-            stale_dll <- setdiff(dir(".", pattern = dll_pat, full.names = TRUE), file.path(".", dll_name))
-            if (length(stale_dll) > 0) {
-                file.remove(stale_dll)
-            }
-            system2("R", c("CMD", "SHLIB", "-o", shQuote(dll_name), shQuote(src_files)))
-            if (file.exists(dll_name)) {
+            dll <- dir(".", pattern = dll_pat, full.names = TRUE)
+            if (length(dll) > 0) {
                 loaded <- getLoadedDLLs()
                 if (pkgname %in% names(loaded)) {
                     dyn.unload(loaded[[pkgname]][["path"]])
                 }
-                dll_info <- dyn.load(dll_name)
+                dll_info <- dyn.load(dll[1])
                 # Register native symbols in pkg_env so that backtick
                 # .Call(`_pkg_foo_`) syntax works without a real namespace
                 # (mirrors what useDynLib(..., .registration=TRUE) does).

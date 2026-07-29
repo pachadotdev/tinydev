@@ -1,0 +1,17 @@
+check_cpp_compiler      Check the C++ compiler
+clear                   Clear the console
+license_agpl            Add a license to a package
+pkg_build               Build R package
+pkg_check               Check R package
+pkg_check_docker        Check R package using Docker
+pkg_clean               Clean R package binaries
+pkg_coverage            Check R package coverage
+pkg_document            Document R Package Functions
+pkg_install             Install R package
+pkg_load                Load package into the current R session
+pkg_register            Register 'C++' Functions
+pkg_template            Start a new project with the cpp4r package
+                        template
+pkg_test                Run tests
+rbuildignore_add        Add a pattern to .Rbuildignore
+tinydev-package         A Tiny R Package Development Toolkit
