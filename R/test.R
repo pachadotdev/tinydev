@@ -12,7 +12,9 @@ pkg_test <- function(pkgdir = ".") {
     stop_if_not_package(pkg)
     testdir <- file.path(pkg, "inst/tinytest")
     if (!dir.exists(testdir)) {
-        stop("no test directory found at: ", testdir, call. = FALSE)
+        warning("no test directory found at: ", testdir, "setting it now")
+        setup_tinytest(".")
+
     }
     pkg_load(pkg)
     rfiles <- dir(testdir, pattern = "\\.[rR]$", full.names = TRUE)

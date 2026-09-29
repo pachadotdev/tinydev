@@ -9,7 +9,10 @@ pkg_clean <- function(pkgdir = ".") {
     pkg <- normalizePath(pkgdir, winslash = "/")
     stop_if_not_package(pkg)
 
-    finp <- list.files(file.path(pkg, "src"), full.names = TRUE, pattern = "\\.(o|so|dll)$")
+    finp <- list.files(
+        file.path(pkg, "src"),
+        full.names = TRUE, recursive = TRUE, pattern = "\\.(o|so|dll)$"
+    )
     if (length(finp) > 0) {
         file.remove(finp)
     }

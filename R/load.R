@@ -193,8 +193,77 @@ pkg_load <- function(pkgdir = ".") {
         pattern = "\\.[Rr]$",
         full.names = TRUE
     )
+
+    # Sort: source files that contain setClass() before all others.
+    # Without this, setMethod() can be called before the class it references
+    # is defined (alphabetical load order puts e.g. dbConnect_PqDriver.R
+    # ahead of PqDriver.R), producing "no definition for class" warnings.
+    has_setclass <- vapply(r_files, function(f) {
+        any(grepl("\\bsetClass\\b", readLines(f, warn = FALSE), perl = TRUE))
+    }, logical(1))
+    r_files <- c(r_files[has_setclass], r_files[!has_setclass])
+
+    # utils::packageVersion() calls packageDescription() which looks for
+    # pkgname/DESCRIPTION in .libPaths(). Provide one from this package's
+    # own DESCRIPTION so the version is found even when not installed.
+    #
+    # NOTE: We deliberately do NOT set .packageName = pkgname in globalenv()
+    # here. setClass() uses getPackageName(topenv(parent.frame())) which calls
+    # get0(".packageName", envir = globalenv(), inherits = TRUE). If we set
+    # .packageName = "rpsql", every setClass() call stores package = "rpsql"
+    # in the class representation. Later, new("PqConnection", ...) sees
+    # package = "rpsql" and calls loadNamespace("rpsql"), loading the
+    # *installed* package alongside the dev .so — two incompatible native
+    # libraries loaded simultaneously → bad_weak_ptr crash.
+    # With no .packageName set, classes register as package = "" and R never
+    # tries to load any external namespace during object construction.
+    .tmp_lib <- file.path(tempdir(), paste0("tinydev_", pkgname))
+    .tmp_pkg <- file.path(.tmp_lib, pkgname)
+    dir.create(.tmp_pkg, recursive = TRUE, showWarnings = FALSE)
+    file.copy(file.path(pkg, "DESCRIPTION"), file.path(.tmp_pkg, "DESCRIPTION"),
+              overwrite = TRUE)
+    .old_libpaths <- .libPaths()
+    .libPaths(c(.tmp_lib, .old_libpaths))
+    on.exit({
+        .libPaths(.old_libpaths)
+        unlink(.tmp_lib, recursive = TRUE)
+    }, add = TRUE)
+
+    # setMethod(f, signature, def) calls topenv(parent.frame()) to find where
+    # to look up the generic. Since pkg_env is a plain environment (not a
+    # namespace), topenv() walks up to globalenv(). S4 generics from
+    # fully-imported packages (e.g. DBI) are in pkg_env but NOT in globalenv(),
+    # so setMethod() fails with "no existing definition for function 'f'".
+    # Fix: temporarily assign all S4 genericFunctions from pkg_env to globalenv()
+    # for the duration of sourcing, then clean up.
+    s4_to_restore <- character(0)
+    for (.nm in ls(pkg_env, all.names = FALSE)) {
+        .obj <- pkg_env[[.nm]]
+        if (isS4(.obj) && is(.obj, "genericFunction") &&
+            !exists(.nm, envir = globalenv(), inherits = FALSE)) {
+            assign(.nm, .obj, envir = globalenv())
+            s4_to_restore <- c(s4_to_restore, .nm)
+        }
+    }
+    on.exit(
+        if (length(s4_to_restore) > 0)
+            rm(list = s4_to_restore, envir = globalenv()),
+        add = TRUE
+    )
+
     for (f in r_files) {
         source(f, local = pkg_env)
+    }
+
+    # R/sysdata.rda holds internal (non-exported) package data, e.g. objects
+    # built by usethis::use_data(..., internal = TRUE). R CMD INSTALL bakes
+    # this directly into the package's namespace so its own R code can see
+    # it without exporting it; mirror that here so code sourced above that
+    # references such objects (evaluated lazily, at call time) resolves them
+    # exactly as it would in an installed package.
+    sysdata_file <- file.path(pkg, "R", "sysdata.rda")
+    if (file.exists(sysdata_file)) {
+        load(sysdata_file, envir = pkg_env)
     }
 
     data_files <- list.files(

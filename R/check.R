@@ -70,6 +70,15 @@ pkg_check <- function(pkgdir = NULL, cran = TRUE, document = TRUE, manual = TRUE
     tarball <- dir(outdir, pattern = "\\.tar\\.gz$", full.names = TRUE)
     if (length(tarball) == 0) stop("build failed: no tarball produced", call. = FALSE)
 
+    # "R CMD build" itself compiles the package (into srcdir/src) in order to
+    # run vignette code with 'library(pkgname)' when building/rebuilding
+    # vignettes - it does NOT clean up the resulting .o/.so/.dll files
+    # afterwards, so they end up bundled straight into the tarball it just
+    # produced ("Found the following apparent object files/libraries..." at
+    # check time). Strip them from the tarball post-hoc: unpack, delete any
+    # leftover object files/libraries, repack.
+    pkg_strip_object_files(tarball)
+
     tdir <- tempfile(tmpdir = cache_root)
     dir.create(tdir)
     setwd(tdir)
@@ -90,3 +99,39 @@ pkg_check <- function(pkgdir = NULL, cran = TRUE, document = TRUE, manual = TRUE
 
     invisible(TRUE)
 }
+
+#' @title Strip object files/libraries from a built source tarball
+#' @description Unpacks a package source tarball, removes any '.o', '.so',
+#'  or '.dll' files left behind by "R CMD build" (e.g. from compiling the
+#'  package to run vignette code), and repacks the tarball in place if any
+#'  were found.
+#' @param tarball Path to the '.tar.gz' source tarball to clean, as produced
+#'  by "R CMD build".
+#' @return Invisibly returns 'TRUE'.
+#' @keywords internal
+pkg_strip_object_files <- function(tarball) {
+    tarball <- normalizePath(tarball, winslash = "/")
+
+    extract_dir <- tempfile(pattern = "pkgclean-")
+    dir.create(extract_dir)
+    on.exit(unlink(extract_dir, recursive = TRUE), add = TRUE)
+
+    utils::untar(tarball, exdir = extract_dir)
+
+    obj_files <- list.files(
+        extract_dir,
+        pattern = "\\.(o|so|dll)$", recursive = TRUE, full.names = TRUE
+    )
+    if (length(obj_files) == 0) {
+        return(invisible(TRUE))
+    }
+    file.remove(obj_files)
+
+    pkg_dir_name <- list.files(extract_dir)
+    oldwd <- setwd(extract_dir)
+    on.exit(setwd(oldwd), add = TRUE)
+    utils::tar(tarball, files = pkg_dir_name, compression = "gzip", tar = "internal")
+
+    invisible(TRUE)
+}
+
